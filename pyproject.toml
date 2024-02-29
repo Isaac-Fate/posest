@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "posest"
+version = "0.0.1"
+description = "A pacakge for pose estimation."
+authors = ["isaac-fei <isaac.omega.fei@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+torch = "^2.2.1"
+torchvision = "^0.17.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -5,18 +5,18 @@ from enum import StrEnum
 class KeypointName(StrEnum):
 
     HEAD = "head"
-    NOSE = "nose"
     NECK = "neck"
+    THORAX = "thorax"
 
     LEFT_SHOULDER = "left_shoulder"
     RIGHT_SHOULDER = "right_shoulder"
     LEFT_ELBOW = "left_elbow"
     RIGHT_ELBOW = "right_elbow"
-    LEFT_HAND = "left_hand"
-    RIGHT_HAND = "right_hand"
+    LEFT_WRIST = "left_wrist"
+    RIGHT_WRIST = "right_wrist"
 
     SPINE = "spine"
-    ROOT = "root"
+    HIP = "hip"
 
     LEFT_HIP = "left_hip"
     RIGHT_HIP = "right_hip"
@@ -31,28 +31,28 @@ class KeypointName(StrEnum):
             case 10:
                 return cls.HEAD
             case 9:
-                return cls.NOSE
-            case 8:
                 return cls.NECK
+            case 8:
+                return cls.THORAX
 
             case 11:
                 return cls.LEFT_SHOULDER
             case 12:
                 return cls.LEFT_ELBOW
             case 13:
-                return cls.LEFT_HAND
+                return cls.LEFT_WRIST
 
             case 14:
                 return cls.RIGHT_SHOULDER
             case 15:
                 return cls.RIGHT_ELBOW
             case 16:
-                return cls.RIGHT_HAND
+                return cls.RIGHT_WRIST
 
             case 7:
                 return cls.SPINE
             case 0:
-                return cls.ROOT
+                return cls.HIP
 
             case 1:
                 return cls.LEFT_HIP
@@ -86,28 +86,28 @@ class KeypointName(StrEnum):
         match self:
             case KeypointName.HEAD:
                 return 10
-            case KeypointName.NOSE:
-                return 9
             case KeypointName.NECK:
+                return 9
+            case KeypointName.THORAX:
                 return 8
 
             case KeypointName.LEFT_SHOULDER:
                 return 11
             case KeypointName.LEFT_ELBOW:
                 return 12
-            case KeypointName.LEFT_HAND:
+            case KeypointName.LEFT_WRIST:
                 return 13
 
             case KeypointName.RIGHT_SHOULDER:
                 return 14
             case KeypointName.RIGHT_ELBOW:
                 return 15
-            case KeypointName.RIGHT_HAND:
+            case KeypointName.RIGHT_WRIST:
                 return 16
 
             case KeypointName.SPINE:
                 return 7
-            case KeypointName.ROOT:
+            case KeypointName.HIP:
                 return 0
 
             case KeypointName.LEFT_HIP:

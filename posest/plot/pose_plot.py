@@ -4,7 +4,12 @@ from ..schemas import Pose, KeypointName
 from .line_segment_data import get_line_segment_data
 
 
-def get_plot_data(pose: Pose) -> list:
+def get_plot_data(
+    pose: Pose,
+    *,
+    line_width: float,
+    line_color: str,
+) -> list:
 
     # Plot data
     plot_data = []
@@ -16,6 +21,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.LEFT_SHOULDER,
             keypoint_name_to=KeypointName.LEFT_ELBOW,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -23,7 +30,9 @@ def get_plot_data(pose: Pose) -> list:
         get_line_segment_data(
             pose=pose,
             keypoint_name_from=KeypointName.LEFT_ELBOW,
-            keypoint_name_to=KeypointName.LEFT_HAND,
+            keypoint_name_to=KeypointName.LEFT_WRIST,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -34,6 +43,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.RIGHT_SHOULDER,
             keypoint_name_to=KeypointName.RIGHT_ELBOW,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -41,7 +52,9 @@ def get_plot_data(pose: Pose) -> list:
         get_line_segment_data(
             pose=pose,
             keypoint_name_from=KeypointName.RIGHT_ELBOW,
-            keypoint_name_to=KeypointName.RIGHT_HAND,
+            keypoint_name_to=KeypointName.RIGHT_WRIST,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -50,16 +63,20 @@ def get_plot_data(pose: Pose) -> list:
     plot_data.extend(
         get_line_segment_data(
             pose=pose,
-            keypoint_name_from=KeypointName.NECK,
+            keypoint_name_from=KeypointName.THORAX,
             keypoint_name_to=KeypointName.LEFT_SHOULDER,
+            width=line_width,
+            color=line_color,
         )
     )
 
     plot_data.extend(
         get_line_segment_data(
             pose=pose,
-            keypoint_name_from=KeypointName.NECK,
+            keypoint_name_from=KeypointName.THORAX,
             keypoint_name_to=KeypointName.RIGHT_SHOULDER,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -68,6 +85,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.HEAD,
             keypoint_name_to=KeypointName.NECK,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -75,7 +94,19 @@ def get_plot_data(pose: Pose) -> list:
         get_line_segment_data(
             pose=pose,
             keypoint_name_from=KeypointName.NECK,
+            keypoint_name_to=KeypointName.THORAX,
+            width=line_width,
+            color=line_color,
+        )
+    )
+
+    plot_data.extend(
+        get_line_segment_data(
+            pose=pose,
+            keypoint_name_from=KeypointName.THORAX,
             keypoint_name_to=KeypointName.SPINE,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -83,23 +114,29 @@ def get_plot_data(pose: Pose) -> list:
         get_line_segment_data(
             pose=pose,
             keypoint_name_from=KeypointName.SPINE,
-            keypoint_name_to=KeypointName.ROOT,
+            keypoint_name_to=KeypointName.HIP,
+            width=line_width,
+            color=line_color,
         )
     )
 
     plot_data.extend(
         get_line_segment_data(
             pose=pose,
-            keypoint_name_from=KeypointName.ROOT,
+            keypoint_name_from=KeypointName.HIP,
             keypoint_name_to=KeypointName.LEFT_HIP,
+            width=line_width,
+            color=line_color,
         )
     )
 
     plot_data.extend(
         get_line_segment_data(
             pose=pose,
-            keypoint_name_from=KeypointName.ROOT,
+            keypoint_name_from=KeypointName.HIP,
             keypoint_name_to=KeypointName.RIGHT_HIP,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -110,6 +147,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.LEFT_HIP,
             keypoint_name_to=KeypointName.LEFT_KNEE,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -118,6 +157,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.LEFT_KNEE,
             keypoint_name_to=KeypointName.LEFT_ANKLE,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -128,6 +169,8 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.RIGHT_HIP,
             keypoint_name_to=KeypointName.RIGHT_KNEE,
+            width=line_width,
+            color=line_color,
         )
     )
 
@@ -136,16 +179,27 @@ def get_plot_data(pose: Pose) -> list:
             pose=pose,
             keypoint_name_from=KeypointName.RIGHT_KNEE,
             keypoint_name_to=KeypointName.RIGHT_ANKLE,
+            width=line_width,
+            color=line_color,
         )
     )
 
     return plot_data
 
 
-def plot_pose(pose: Pose):
+def plot_pose(
+    pose: Pose,
+    *,
+    line_width: float = 7.0,
+    line_color: str = "black",
+) -> None:
 
     fig = go.Figure(
-        data=get_plot_data(pose),
+        data=get_plot_data(
+            pose,
+            line_width=line_width,
+            line_color=line_color,
+        ),
         layout=go.Layout(
             showlegend=False,
             scene=dict(
@@ -155,30 +209,30 @@ def plot_pose(pose: Pose):
                     y=1,
                     z=1,
                 ),
-                # xaxis=dict(
-                #     nticks=10,
-                #     range=[-1, 1],
-                # ),
-                # yaxis=dict(
-                #     nticks=10,
-                #     range=[-1, 1],
-                # ),
-                # zaxis=dict(
-                #     nticks=10,
-                #     range=[-1, 1],
-                # ),
-                # camera=dict(
-                #     up=dict(
-                #         x=0,
-                #         y=-1,
-                #         z=0,
-                #     ),
-                #     eye=dict(
-                #         x=0,
-                #         y=0,
-                #         z=-2,
-                #     ),
-                # ),
+                xaxis=dict(
+                    nticks=10,
+                    range=[0, 1],
+                ),
+                yaxis=dict(
+                    nticks=10,
+                    range=[0, 1],
+                ),
+                zaxis=dict(
+                    nticks=10,
+                    range=[0, 1],
+                ),
+                camera=dict(
+                    up=dict(
+                        x=0,
+                        y=-1,
+                        z=0,
+                    ),
+                    eye=dict(
+                        x=0,
+                        y=0,
+                        z=-2,
+                    ),
+                ),
             ),
         ),
     )

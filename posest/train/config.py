@@ -23,6 +23,9 @@ class TrainingConfig(BaseModel):
     n_epochs: int
     adam_lr: float
 
+    # Whether to enable wandb
+    wandb: bool = False
+
     @property
     def run_name(self) -> str:
         """The name of the run is given by

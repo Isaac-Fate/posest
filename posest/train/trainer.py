@@ -70,16 +70,18 @@ class Trainer:
 
     def train(self):
 
-        # Log in to Wandb
-        wandb.login()
+        if self._config.wandb:
 
-        # Create a run
-        run = wandb.init(
-            # Project name
-            project="mobile-human-pose",
-            # Run name
-            name=self._config.run_name,
-        )
+            # Log in to Wandb
+            wandb.login()
+
+            # Create a run
+            run = wandb.init(
+                # Project name
+                project="mobile-human-pose",
+                # Run name
+                name=self._config.run_name,
+            )
 
         # Prepare data
         self._prepare_data()
@@ -143,7 +145,8 @@ class Trainer:
                 self._logger.info(train_log_record.to_message())
 
                 # Wandb
-                wandb.log(train_log_record.model_dump())
+                if self._config.wandb:
+                    wandb.log(train_log_record.model_dump())
 
             # Validate
             self._validate(epoch)
@@ -207,7 +210,8 @@ class Trainer:
             logger.info(valid_log_record.to_message())
 
             # Wandb
-            wandb.log(valid_log_record.model_dump())
+            if self._config.wandb:
+                wandb.log(valid_log_record.model_dump())
 
     def _save_checkpoint(self, epoch: int) -> None:
 

@@ -35,14 +35,6 @@ class TrainingConfig(BaseModel):
         return self.run_dir.stem
 
     @property
-    def run_name(self) -> str:
-        """The name of the run is given by
-        the stem of the run directory.
-        """
-
-        return self.run_dir.stem
-
-    @property
     def log_filepath(self) -> Path:
         """File path of the training log."""
 

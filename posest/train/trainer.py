@@ -23,7 +23,7 @@ class Trainer:
         self._config = config
 
         # Set up logger
-        self._logger = logger.bind(key="table-net")
+        self._logger = logger.bind(key="mobile-human-pose")
         self._logger.add(self._config.log_filepath)
 
         # Check if CUDA (GPU) is available, else use CPU
@@ -34,11 +34,9 @@ class Trainer:
         self._train_dataloader: Optional[DataLoader] = None
         self._valid_dataloader: Optional[DataLoader] = None
 
-        # Create table net model
-        self._model = MobileHumanPose()
-
-        # Move the model to device
-        self._model.to(self._device)
+        # Create table net model, and
+        # move the model to device
+        self._model = MobileHumanPose().to(self._device)
 
     @property
     def device(self) -> str:

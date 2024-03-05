@@ -123,7 +123,7 @@ class MobileHumanPose(nn.Module):
         d = heatmaps.shape[-1]
 
         # Discrete values in one dimension
-        discrete_values = torch.linspace(0.0, 1.0, d)
+        discrete_values = torch.linspace(0.0, 1.0, d).to(device)
 
         # Marginal probabilities
         x_probs = heatmaps.sum(dim=(-1, -2))

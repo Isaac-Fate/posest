@@ -3,6 +3,7 @@ from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 
+from .spec import MobileHumanPoseSpec
 from .backbone import SkipConcat
 
 
@@ -96,4 +97,44 @@ class MobileHumanPose(nn.Module):
 
         super().__init__()
 
-        self.backbone = SkipConcat(n_keypoints=36)
+        # Backbone
+        self.backbone = SkipConcat()
+
+        # Final layer
+        self.conv = nn.Conv2d(
+            256,
+            MobileHumanPoseSpec.n_keypoints * 32,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+        )
+
+    def forward(self, image: Tensor) -> Tensor:
+        """Predict the coordinates of the keypoints from the input image.
+
+        Parameters
+        ----------
+        image : Tensor
+            Shape: (N, 3, 256, 256)
+
+        Returns
+        -------
+        Tensor
+            Shape: (N, K, 3)
+
+            K is the number of keypoints.
+            It represents the (x, y, z) coordinate for
+            each keypoint in each batch.
+        """
+
+        # Forward pass
+        x = self.backbone(image)
+        out = self.conv(x)
+
+        # Cet heatmaps
+        heatmaps = get_heatmaps(out)
+
+        # Get the keypoint coordinates
+        keypoints = get_coords(heatmaps)
+
+        return keypoints

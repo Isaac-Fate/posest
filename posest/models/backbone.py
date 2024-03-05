@@ -10,7 +10,6 @@ class SkipConcat(nn.Module):
     def __init__(
         self,
         *,
-        n_keypoints: int = 36,
         embedding_dim: int = 2048,
     ) -> None:
 
@@ -111,15 +110,6 @@ class SkipConcat(nn.Module):
             hidden_dim=48,
         )
 
-        # Final layer
-        self.conv3 = nn.Conv2d(
-            256,
-            n_keypoints * 32,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-        )
-
     def forward(self, image: Tensor) -> Tensor:
 
         # Input image has shape (N, 3, 256, 256)
@@ -143,8 +133,6 @@ class SkipConcat(nn.Module):
         z2 = self.deconv2(concat2)
 
         concat3 = torch.concat((u3, z2), dim=1)
-        z3 = self.deconv3(concat3)
-
-        out = self.conv3(z3)
+        out = self.deconv3(concat3)
 
         return out

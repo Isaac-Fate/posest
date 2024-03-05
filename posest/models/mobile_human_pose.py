@@ -116,6 +116,9 @@ class MobileHumanPose(nn.Module):
             each keypoint in each batch.
         """
 
+        # Get device
+        device = heatmaps.device
+
         # Get D
         d = heatmaps.shape[-1]
 
@@ -128,9 +131,9 @@ class MobileHumanPose(nn.Module):
         z_probs = heatmaps.sum(dim=(-2, -3))
 
         # Expected coordinate values
-        x = torch.einsum("ijk, k -> ij", x_probs, discrete_values)
-        y = torch.einsum("ijk, k -> ij", y_probs, discrete_values)
-        z = torch.einsum("ijk, k -> ij", z_probs, discrete_values)
+        x = torch.einsum("ijk, k -> ij", x_probs, discrete_values).to(device)
+        y = torch.einsum("ijk, k -> ij", y_probs, discrete_values).to(device)
+        z = torch.einsum("ijk, k -> ij", z_probs, discrete_values).to(device)
 
         # Wrap the components
         coords = torch.stack((x, y, z), dim=-1)

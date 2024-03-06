@@ -12,8 +12,9 @@ class TrainingConfig(BaseModel):
     # Root directory of the dataset
     dataset_dir: Path
 
-    # Batch size
-    batch_size: int
+    # Batch sizes
+    train_batch_size: int
+    valid_batch_size: int
 
     # Save a checkpoint every n epochs
     # The checkpoint of the last epochs is always saved
@@ -22,6 +23,7 @@ class TrainingConfig(BaseModel):
     # Hyperparameters
     n_epochs: int
     adam_lr: float
+    exponential_lr_gamma: float
 
     # Whether to enable wandb
     wandb: bool = False

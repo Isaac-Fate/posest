@@ -5,12 +5,13 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import Adam
+from torch.optim.lr_scheduler import ExponentialLR
 
 import wandb
 from loguru import logger
 
 from .config import TrainingConfig
-from .logging import TrainingLogRecord, ValidationLogRecord
+from .logging import BatchTrainingLogRecord, EpochTrainingLogRecord, ValidationLogRecord
 from ..data import Human36mDataset, Human36mSample
 from ..models import MobileHumanPose
 from .criterions import mpjpe_loss
@@ -90,6 +91,13 @@ class Trainer:
             lr=self._config.adam_lr,
         )
 
+        # Scheduler
+        # It is used to decrease the learning rate
+        scheduler = ExponentialLR(
+            optimizer,
+            gamma=self._config.exponential_lr_gamma,
+        )
+
         # Log
         self._logger.info("Start training...")
         self._logger.info(f"Training Configuration: {self._config}")
@@ -99,6 +107,9 @@ class Trainer:
 
             # Epoch number
             epoch = i + 1
+
+            # Training losse of each batch
+            train_losses = []
 
             # Total number of batches
             n_batches = len(self._train_dataloader)
@@ -129,10 +140,13 @@ class Trainer:
                 # Update weights
                 optimizer.step()
 
-                # Log
+                # Add loss
+                train_losses.append(loss.item())
+
+                # Batch training log
 
                 # Log record
-                train_log_record = TrainingLogRecord(
+                train_log_record = BatchTrainingLogRecord(
                     epoch=epoch,
                     batch=batch,
                     n_batches=n_batches,
@@ -146,8 +160,27 @@ class Trainer:
                 if self._config.wandb:
                     wandb.log(train_log_record.model_dump())
 
+            # Epoch training log
+
+            # Log record
+            train_log_record = EpochTrainingLogRecord(
+                epoch=epoch,
+                lr=scheduler.get_last_lr()[0],
+                avg_train_loss=sum(train_losses) / n_batches,
+            )
+
+            # Loguru
+            self._logger.info(train_log_record.to_message())
+
+            # Wandb
+            if self._config.wandb:
+                wandb.log(train_log_record.model_dump())
+
             # Validate
             self._validate(epoch)
+
+            # Adjust learning rate
+            scheduler.step()
 
             # Save checkpoint
             self._save_checkpoint(epoch)
@@ -165,8 +198,12 @@ class Trainer:
         )
 
         # Create data loaders
-        train_dataloader = DataLoader(train_dataset, batch_size=self._config.batch_size)
-        valid_dataloader = DataLoader(valid_dataset, batch_size=self._config.batch_size)
+        train_dataloader = DataLoader(
+            train_dataset, batch_size=self._config.train_batch_size
+        )
+        valid_dataloader = DataLoader(
+            valid_dataset, batch_size=self._config.valid_batch_size
+        )
 
         self._train_dataloader = train_dataloader
         self._valid_dataloader = valid_dataloader

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class TrainingLogRecord(BaseModel):
+class BatchTrainingLogRecord(BaseModel):
 
     epoch: int
     batch: int
@@ -27,6 +27,33 @@ class TrainingLogRecord(BaseModel):
             batch=self.batch,
             n_batches=self.n_batches,
             train_loss=self.train_loss,
+        )
+
+
+class EpochTrainingLogRecord(BaseModel):
+
+    epoch: int
+    lr: float
+    avg_train_loss: float
+
+    def to_message(self) -> str:
+        """Convert to a message to log.
+
+        Returns
+        -------
+        str
+            Message of this record.
+        """
+
+        return (
+            "Training - "
+            "Epoch: {epoch} - "
+            "Learning Rate: {lr} - "
+            "Average Training Loss: {avg_train_loss}"
+        ).format(
+            epoch=self.epoch,
+            lr=self.lr,
+            avg_train_loss=self.avg_train_loss,
         )
 
 

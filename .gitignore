@@ -35,3 +35,7 @@
 
 # Wandb
 /wandb
+
+# Cloned repositories
+/MediaPipePyTorch
+/movenet.pytorch

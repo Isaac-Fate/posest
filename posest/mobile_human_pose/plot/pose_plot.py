@@ -211,15 +211,15 @@ def plot_pose(
                 ),
                 xaxis=dict(
                     nticks=10,
-                    range=[-1, 1],
+                    range=[0, 1],
                 ),
                 yaxis=dict(
                     nticks=10,
-                    range=[-1, 1],
+                    range=[0, 1],
                 ),
                 zaxis=dict(
                     nticks=10,
-                    range=[-1, 1],
+                    range=[0, 1],
                 ),
                 camera=dict(
                     up=dict(

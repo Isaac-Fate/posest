@@ -112,7 +112,7 @@ class SkipConcat(nn.Module):
 
     def forward(self, image: Tensor) -> Tensor:
 
-        # Input image has shape (N, 3, 256, 256)
+        # Input image has shape (N, 3, H, W)
 
         x1 = self.conv1(image)
 

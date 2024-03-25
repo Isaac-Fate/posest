@@ -1,6 +1,8 @@
+from typing import Optional
 from pathlib import Path
 from pydantic import BaseModel
-import json
+
+from ..models import MobileHumanPoseConfig
 
 
 class TrainingConfig(BaseModel):
@@ -12,21 +14,31 @@ class TrainingConfig(BaseModel):
     # Root directory of the dataset
     dataset_dir: Path
 
+    # Model configuration
+    mobile_human_pose_config: MobileHumanPoseConfig
+
     # Batch sizes
     train_batch_size: int
-    valid_batch_size: int
+    val_batch_size: int
 
     # Save a checkpoint every n epochs
     # The checkpoint of the last epochs is always saved
     save_every_n_epochs: int
 
-    # Hyperparameters
-    n_epochs: int
+    # Number of epochs to train
+    num_epochs: int
+
+    # Learning rate of the optimizer
     adam_lr: float
+
+    # Exponential learning rate scheduler
     exponential_lr_gamma: float
 
     # Whether to enable wandb
     wandb: bool = False
+
+    # Random seed
+    seed: Optional[int] = None
 
     @property
     def run_name(self) -> str:
@@ -41,24 +53,6 @@ class TrainingConfig(BaseModel):
         """File path of the training log."""
 
         return self.run_dir.joinpath("train").with_suffix(".log")
-
-    @property
-    def train_sample_names(self) -> list[str]:
-        """Names of the training samples."""
-
-        with open(self.run_dir.joinpath("train-samples.json"), "r") as f:
-            sample_names = json.load(f)
-
-        return sample_names
-
-    @property
-    def valid_sample_names(self) -> list[str]:
-        """Names of the validation samples."""
-
-        with open(self.run_dir.joinpath("valid-samples.json"), "r") as f:
-            sample_names = json.load(f)
-
-        return sample_names
 
     @property
     def checkpoints_dir(self) -> Path:

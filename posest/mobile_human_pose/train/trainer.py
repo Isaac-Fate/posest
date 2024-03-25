@@ -3,6 +3,7 @@ import tomllib
 from pathlib import Path
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
@@ -12,9 +13,13 @@ from loguru import logger
 
 from .config import TrainingConfig
 from .logging import BatchTrainingLogRecord, EpochTrainingLogRecord, ValidationLogRecord
-from ..data import Human36mDataset, Human36mSample
+from posest.data import DataSubsetType
+from ..data import JTADataset, JTASample
 from ..models import MobileHumanPose
 from .criterions import mpjpe_loss
+
+
+PROJECT_NAME = "mobile-human-pose"
 
 
 class Trainer:
@@ -24,20 +29,26 @@ class Trainer:
         self._config = config
 
         # Set up logger
-        self._logger = logger.bind(key="mobile-human-pose")
+        self._logger = logger.bind(key=PROJECT_NAME)
         self._logger.add(self._config.log_filepath)
 
         # Check if CUDA (GPU) is available, else use CPU
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Data
-        self._dataset: Optional[Human36mDataset] = None
-        self._train_dataloader: Optional[DataLoader] = None
-        self._valid_dataloader: Optional[DataLoader] = None
+        self._dataset: Optional[JTADataset] = None
+        self._train_data_loader: Optional[DataLoader] = None
+        self._val_data_loader: Optional[DataLoader] = None
 
-        # Create table net model, and
+        # Create the model, and
         # move the model to device
-        self._model = MobileHumanPose().to(self._device)
+        self._model = MobileHumanPose(config.mobile_human_pose_config).to(self.device)
+
+    @property
+    def config(self) -> TrainingConfig:
+        """Training configuration."""
+
+        return self._config
 
     @property
     def device(self) -> str:
@@ -69,6 +80,10 @@ class Trainer:
 
     def train(self):
 
+        # Set the random seed manually if required
+        if self._config.seed is not None:
+            torch.manual_seed(self._config.seed)
+
         if self._config.wandb:
 
             # Log in to Wandb
@@ -77,7 +92,7 @@ class Trainer:
             # Create a run
             run = wandb.init(
                 # Project name
-                project="mobile-human-pose",
+                project=PROJECT_NAME,
                 # Run name
                 name=self._config.run_name,
             )
@@ -103,7 +118,10 @@ class Trainer:
         self._logger.info(f"Training Configuration: {self._config}")
 
         # Training loop
-        for i in range(self._config.n_epochs):
+        for i in range(self._config.num_epochs):
+
+            # Set the model to training mode
+            self.model.train()
 
             # Epoch number
             epoch = i + 1
@@ -112,27 +130,19 @@ class Trainer:
             train_losses = []
 
             # Total number of batches
-            n_batches = len(self._train_dataloader)
+            num_batches = len(self._train_data_loader)
 
-            samples: Human36mSample
-            for i, samples in enumerate(self._train_dataloader):
+            batch: JTASample
+            for i, batch in enumerate(self._train_data_loader):
 
                 # Batch number
-                batch = i + 1
+                batch_number = i + 1
 
                 # Zero the gradients
                 optimizer.zero_grad()
 
-                # Unpack batched samples, and
-                # move data to device
-                image_batch = samples.image.to(self._device)
-                keypoints_batch = samples.keypoints.to(self._device)
-
-                # Forward pass
-                pred_keypoints = self._model(image_batch)
-
-                # Compute loss
-                loss = mpjpe_loss(pred_keypoints, keypoints_batch)
+                # Forward this batch and get the loss
+                loss = self._forward_batch(batch)
 
                 # Backward pass
                 loss.backward()
@@ -148,8 +158,8 @@ class Trainer:
                 # Log record
                 train_log_record = BatchTrainingLogRecord(
                     epoch=epoch,
-                    batch=batch,
-                    n_batches=n_batches,
+                    batch_number=batch_number,
+                    num_batches=num_batches,
                     train_loss=loss.item(),
                 )
 
@@ -166,7 +176,7 @@ class Trainer:
             train_log_record = EpochTrainingLogRecord(
                 epoch=epoch,
                 lr=scheduler.get_last_lr()[0],
-                avg_train_loss=sum(train_losses) / n_batches,
+                avg_train_loss=sum(train_losses) / num_batches,
             )
 
             # Loguru
@@ -188,72 +198,103 @@ class Trainer:
     def _prepare_data(self) -> None:
 
         # Load datasets
-        train_dataset = Human36mDataset(
+        train_dataset = JTADataset(
             self._config.dataset_dir,
-            sample_names=self._config.train_sample_names,
+            type=DataSubsetType.TRAIN,
+            image_tensor_height=self._config.mobile_human_pose_config.image_tensor_height,
+            image_tensor_width=self._config.mobile_human_pose_config.image_tensor_width,
         )
-        valid_dataset = Human36mDataset(
+        val_dataset = JTADataset(
             self._config.dataset_dir,
-            sample_names=self._config.valid_sample_names,
+            type=DataSubsetType.VAL,
+            image_tensor_height=self._config.mobile_human_pose_config.image_tensor_height,
+            image_tensor_width=self._config.mobile_human_pose_config.image_tensor_width,
         )
 
         # Create data loaders
-        train_dataloader = DataLoader(
-            train_dataset, batch_size=self._config.train_batch_size
+        train_data_loader = DataLoader(
+            train_dataset,
+            batch_size=self._config.train_batch_size,
+            shuffle=True,
         )
-        valid_dataloader = DataLoader(
-            valid_dataset, batch_size=self._config.valid_batch_size
+        val_data_loader = DataLoader(
+            val_dataset,
+            batch_size=self._config.val_batch_size,
+            shuffle=True,
         )
 
-        self._train_dataloader = train_dataloader
-        self._valid_dataloader = valid_dataloader
+        self._train_data_loader = train_data_loader
+        self._val_data_loader = val_data_loader
 
     def _validate(self, epoch: int) -> None:
+        # Set the model to evaluation mode
+        self.model.eval()
+
         with torch.no_grad():
             # List of loss of each batch
-            valid_losses = []
+            val_losses = []
 
             # Validation loop
-            n_batches = len(self._valid_dataloader)
-            samples: Human36mSample
-            for samples in self._valid_dataloader:
-                # Unpack batched samples
-                image_batch = samples.image.to(self._device)
-                keypoints_batch = samples.keypoints.to(self._device)
-
-                # Predict keypoints
-                pred_keypoints = self._model(image_batch)
-
-                # Compute loss
-                loss = mpjpe_loss(pred_keypoints, keypoints_batch)
+            num_batches = len(self._val_data_loader)
+            batch: JTASample
+            for batch in self._val_data_loader:
+                # Forward this batch and get the loss
+                loss = self._forward_batch(batch)
 
                 # Add to list
-                valid_losses.append(loss.item())
+                val_losses.append(loss.item())
 
             # Overall validation performance
-            valid_loss = sum(valid_losses) / n_batches
+            val_loss = sum(val_losses) / num_batches
 
             # Log
 
             # Log record
-            valid_log_record = ValidationLogRecord(
+            val_log_record = ValidationLogRecord(
                 epoch=epoch,
-                valid_loss=valid_loss,
+                val_loss=val_loss,
             )
 
             # Loguru
-            logger.info(valid_log_record.to_message())
+            logger.info(val_log_record.to_message())
 
             # Wandb
             if self._config.wandb:
-                wandb.log(valid_log_record.model_dump())
+                wandb.log(val_log_record.model_dump())
+
+    def _forward_batch(self, batch: JTASample) -> Tensor:
+        """Feed forward a batch, and return the loss.
+
+        Parameters
+        ----------
+        batch: JTASample
+            Batch of samples.
+
+        Returns
+        -------
+        Tensor
+            Loss of this batch.
+        """
+
+        # Unpack batched samples, and
+        # move data to device
+        image = batch.image.to(self.device)
+        keypoint_world_coordinates = batch.keypoint_world_coordinates.to(self.device)
+
+        # Forward pass
+        pred_keypoint_world_coordinates = self._model(image)
+
+        # Compute loss
+        loss = mpjpe_loss(pred_keypoint_world_coordinates, keypoint_world_coordinates)
+
+        return loss
 
     def _save_checkpoint(self, epoch: int) -> None:
 
         # No need to save
         if (
             epoch % self._config.save_every_n_epochs != 0
-            and epoch != self._config.n_epochs
+            and epoch != self._config.num_epochs
         ):
             return
 

@@ -3,15 +3,20 @@ from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 
-from .spec import MobileHumanPoseSpec
+from .config import MobileHumanPoseConfig
 from .backbone import SkipConcat
 
 
 class MobileHumanPose(nn.Module):
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        config: MobileHumanPoseConfig,
+    ) -> None:
 
         super().__init__()
+
+        self._config = config
 
         # Backbone
         self.backbone = SkipConcat()
@@ -19,11 +24,17 @@ class MobileHumanPose(nn.Module):
         # Final layer
         self.conv = nn.Conv2d(
             256,
-            MobileHumanPoseSpec.n_keypoints * 32,
+            config.num_keypoints * 32,
             kernel_size=1,
             stride=1,
             padding=0,
         )
+
+    @property
+    def config(self) -> MobileHumanPoseConfig:
+        """The model configuration."""
+
+        return self._config
 
     def forward(self, image: Tensor) -> Tensor:
         """Predict the coordinates of the keypoints from the input image.
@@ -80,18 +91,18 @@ class MobileHumanPose(nn.Module):
         d = h
 
         # Get the number of keypoints
-        n_keypoints, r = divmod(c, d)
+        num_keypoints, r = divmod(c, d)
         assert r == 0, "Number of ouput channels must be a multiple of height/width"
 
         # Reshape to (N, K, D^3)
         # so that we can easily apply softmax
-        heatmaps = out.reshape(-1, n_keypoints, d * d * d)
+        heatmaps = out.reshape(-1, num_keypoints, d * d * d)
 
         # Apply softmax
         heatmaps = F.softmax(heatmaps, dim=-1)
 
         # Convert to the desired shape of heatamps
-        heatmaps = heatmaps.reshape(-1, n_keypoints, d, d, d)
+        heatmaps = heatmaps.reshape(-1, num_keypoints, d, d, d)
 
         return heatmaps
 
@@ -123,7 +134,23 @@ class MobileHumanPose(nn.Module):
         d = heatmaps.shape[-1]
 
         # Discrete values in one dimension
-        discrete_values = torch.linspace(0.0, 1.0, d).to(device)
+        x_values = torch.linspace(
+            self._config.x_lim[0],
+            self._config.x_lim[1],
+            d,
+        ).to(device)
+
+        y_values = torch.linspace(
+            self._config.y_lim[0],
+            self._config.y_lim[1],
+            d,
+        ).to(device)
+
+        z_values = torch.linspace(
+            self._config.z_lim[0],
+            self._config.z_lim[1],
+            d,
+        ).to(device)
 
         # Marginal probabilities
         x_probs = heatmaps.sum(dim=(-1, -2))
@@ -131,9 +158,9 @@ class MobileHumanPose(nn.Module):
         z_probs = heatmaps.sum(dim=(-2, -3))
 
         # Expected coordinate values
-        x = torch.einsum("ijk, k -> ij", x_probs, discrete_values).to(device)
-        y = torch.einsum("ijk, k -> ij", y_probs, discrete_values).to(device)
-        z = torch.einsum("ijk, k -> ij", z_probs, discrete_values).to(device)
+        x = torch.einsum("ijk, k -> ij", x_probs, x_values).to(device)
+        y = torch.einsum("ijk, k -> ij", y_probs, y_values).to(device)
+        z = torch.einsum("ijk, k -> ij", z_probs, z_values).to(device)
 
         # Wrap the components
         coords = torch.stack((x, y, z), dim=-1)

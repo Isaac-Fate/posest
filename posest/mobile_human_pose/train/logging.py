@@ -4,8 +4,8 @@ from pydantic import BaseModel
 class BatchTrainingLogRecord(BaseModel):
 
     epoch: int
-    batch: int
-    n_batches: int
+    batch_number: int
+    num_batches: int
     train_loss: float
 
     def to_message(self) -> str:
@@ -20,12 +20,12 @@ class BatchTrainingLogRecord(BaseModel):
         return (
             "Training - "
             "Epoch: {epoch} - "
-            "Batch: {batch}/{n_batches} - "
+            "Batch: {batch_number}/{num_batches} - "
             "Training Loss: {train_loss}"
         ).format(
             epoch=self.epoch,
-            batch=self.batch,
-            n_batches=self.n_batches,
+            batch_number=self.batch_number,
+            num_batches=self.num_batches,
             train_loss=self.train_loss,
         )
 
@@ -60,7 +60,7 @@ class EpochTrainingLogRecord(BaseModel):
 class ValidationLogRecord(BaseModel):
 
     epoch: int
-    valid_loss: float
+    val_loss: float
 
     def to_message(self) -> str:
         """Convert to a message to log.
@@ -71,7 +71,7 @@ class ValidationLogRecord(BaseModel):
             Message of this record.
         """
 
-        return ("Validation - Epoch: {epoch} - Validation Loss: {valid_loss}").format(
+        return ("Validation - Epoch: {epoch} - Validation Loss: {val_loss}").format(
             epoch=self.epoch,
-            valid_loss=self.valid_loss,
+            val_loss=self.val_loss,
         )

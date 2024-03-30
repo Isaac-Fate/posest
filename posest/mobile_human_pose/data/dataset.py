@@ -135,7 +135,7 @@ class JTADataset(Dataset):
         sample_name = self._sample_names[index]
 
         # Extract the sequence number, frame number from the sample name
-        seq_number, frame_number, _ = sample_name.split("_")
+        seq_number, frame_number, _ = sample_name.split("-")
 
         return self._images_subdir.joinpath(f"seq_{seq_number}").joinpath(
             f"{frame_number}.jpg"
